@@ -114,9 +114,9 @@ main{position:relative;z-index:1}
 .stage{position:sticky;top:0;height:100vh;overflow:hidden;background:var(--canvas);isolation:isolate}
 .poster,.poster-end{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat}
 .poster-end{opacity:0}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s var(--ease-out);will-change:transform;transform:translateZ(0)}
-.stage.video-ready .hero-video{opacity:1}
-.stage.video-failed .hero-video{display:none}
+.hero-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;transition:opacity 1s var(--ease-out);transform:translateZ(0)}
+.stage.film-ready .hero-canvas{opacity:1}
+.stage.film-failed .hero-canvas{display:none}
 .scrim{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 120% 90% at 50% 45%,rgba(3,8,20,0) 35%,rgba(3,8,20,.62) 100%)}
 .stage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:16vh;pointer-events:none;background:linear-gradient(to bottom,rgba(4,11,25,0),var(--canvas))}
 
@@ -170,7 +170,7 @@ main{position:relative;z-index:1}
 .hud.off{opacity:0}
 .ring{position:absolute;right:clamp(24px,6vw,120px);bottom:30px;z-index:3;width:36px;height:36px;color:var(--accent);transform:rotate(-90deg);transition:opacity .6s var(--ease-out)}
 .ring circle.track{stroke:rgba(234,240,250,.14)}
-.stage.video-ready .ring{opacity:0}
+.stage.film-loaded .ring{opacity:0}
 @media (max-height:560px){.hud,.ring{display:none}}
 
 /* static hero: phones, portrait tablets, reduced motion */

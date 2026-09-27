@@ -142,15 +142,13 @@
      ========================================================= */
   const hero = $('.hero');
   const stage = $('.stage');
-  const video = $('.hero-video');
+  const canvas = $('.hero-canvas');
   const poster = $('.poster');
   const posterEnd = $('.poster-end');
   const ring = $('.ring');
   const hud = $('.hud');
   const msEl = $('.hud .ms');
-  const VIDEO_URL = 'assets/hero-scrub.mp4';
   const POSTER_URL = 'assets/hero-poster.jpg';
-  const VIDEO_BYTES = 4165360;
 
   const bands = $$('.band', stage).map((el, i, arr) => ({
     el, a: +el.dataset.a, b: +el.dataset.b, ramp: el.dataset.ramp ? +el.dataset.ramp : 0,
@@ -218,7 +216,6 @@
   /* Captions: opacity per band paced in scroll distance, assembly progress --k.
      Every DOM write is delta-gated. */
   let loadK = 0;
-  let videoFailed = false, videoReady = false;
   let lastEnd = -1, hudOff = null, lastLabel = '', lastLabelAt = 0;
 
   function updateLabel(p, now, force) {
@@ -259,49 +256,151 @@
     updateLabel(p, now, force);
     const off = p > 0.7;
     if (off !== hudOff) { hudOff = off; hud.classList.toggle('off', off); }
-    if (videoFailed) {
+    if (filmFailed) {
       const e = Math.round(smoothstep(p, 0.4, 0.85) * 100) / 100;
       if (e !== lastEnd) { lastEnd = e; posterEnd.style.opacity = e; }
     }
   }
 
-  /* Seeks never overlap: coalesce to the newest, one follow-up, deadlock-safe. */
-  let seekBusy = false, pendingTime = null;
-  function requestSeek(t) {
-    if (!video.duration || !isFinite(video.duration)) return;
-    t = clamp(t, 0, video.duration - 0.001);
-    if (seekBusy) { pendingTime = t; return; }
-    seekBusy = true;
-    video.currentTime = t;
-  }
-  video.addEventListener('seeked', () => {
-    seekBusy = false;
-    if (pendingTime !== null) { const t = pendingTime; pendingTime = null; requestSeek(t); }
-  });
-  video.addEventListener('error', () => {
-    seekBusy = false;
-    pendingTime = null;
-    if (!videoReady) failVideo();
-  });
+  /* The film as a frame sequence drawn to a canvas. Every frame is a still that is
+     already downloaded, so the picture follows the scroll with no seek delay, and
+     neighbouring frames blend so the motion is continuous between them. */
+  const FRAMES = 273;
+  const frameUrl = i => `assets/frames/v1/f${String(i + 1).padStart(3, '0')}.webp`;
+  const imgs = new Array(FRAMES).fill(null);
+  const loaded = new Uint8Array(FRAMES);
+  const warmed = new Uint8Array(FRAMES);
+  const ctx2 = canvas.getContext('2d', { alpha: false });
+  let cw = 0, ch = 0, drawnF = -1, lastIdx = -1, lastF = 0;
+  let framesReady = false, filmFailed = false, framesStarted = false;
+  let loadedCount = 0, failedCount = 0, lastRing = 0, lastLoadAt = 0;
 
-  /* Lerp the displayed time in a rAF loop that rests. */
-  let target = 0, shown = 0, rafId = null, lastTick = 0, heroOnScreen = true, scrubOn = false;
+  function sizeCanvas() {
+    const r = stage.getBoundingClientRect();
+    const scale = Math.min(devicePixelRatio || 1, 1920 / Math.max(1, r.width), 2);
+    const w = Math.max(1, Math.round(r.width * scale)), h = Math.max(1, Math.round(r.height * scale));
+    if (w !== cw || h !== ch) { cw = canvas.width = w; ch = canvas.height = h; drawnF = -1; }
+  }
+  function nearestLoaded(i) {
+    if (loaded[i]) return i;
+    for (let d = 1; d < FRAMES; d++) {
+      if (i - d >= 0 && loaded[i - d]) return i - d;
+      if (i + d < FRAMES && loaded[i + d]) return i + d;
+    }
+    return -1;
+  }
+  function blit(img, alpha) {
+    const s = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
+    const dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+    ctx2.globalAlpha = alpha;
+    ctx2.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+  }
+  // Decode the next few frames in the direction of travel before they are needed.
+  function warm(i, dir) {
+    for (let d = 1; d <= 6; d++) {
+      const j = i + d * dir;
+      if (j < 0 || j >= FRAMES || !loaded[j] || warmed[j]) continue;
+      warmed[j] = 1;
+      imgs[j].decode().catch(() => { warmed[j] = 0; });
+    }
+  }
+  function drawFrame(f, force) {
+    if (!framesReady) return;
+    f = clamp(f, 0, FRAMES - 1);
+    if (!force && Math.abs(f - drawnF) < 0.002) return;
+    const i0 = Math.floor(f), a = f - i0, i1 = Math.min(FRAMES - 1, i0 + 1);
+    const base = nearestLoaded(i0);
+    if (base < 0) return;
+    blit(imgs[base], 1);
+    if (a > 0.004 && base === i0 && i1 !== i0 && loaded[i1]) blit(imgs[i1], a);
+    ctx2.globalAlpha = 1;
+    drawnF = f;
+    const idx = Math.round(f);
+    if (idx !== lastIdx) { lastIdx = idx; stage.dataset.frame = idx; warm(idx, f >= lastF ? 1 : -1); }
+    lastF = f;
+  }
+
+  /* Coarse to fine: the ends and every 32nd and 16th frame first, so the scrub works
+     within moments, then the gaps fill in. The ring reports real progress, and a
+     stall before the first pass lands falls back to the still-image journey. */
+  function startFrames() {
+    if (framesStarted) return;
+    framesStarted = true;
+    const order = [], seen = new Uint8Array(FRAMES);
+    const push = i => { if (i >= 0 && i < FRAMES && !seen[i]) { seen[i] = 1; order.push(i); } };
+    push(0); push(FRAMES - 1);
+    for (let i = 0; i < FRAMES; i += 32) push(i);
+    for (let i = 0; i < FRAMES; i += 16) push(i);
+    const readyCount = order.length;
+    for (const s of [8, 4, 2, 1]) for (let i = 0; i < FRAMES; i += s) push(i);
+    let next = 0, active = 0;
+    lastLoadAt = performance.now();
+    const settle = () => {
+      if (loadedCount + failedCount < FRAMES) return;
+      ring.style.setProperty('--ld', 0);
+      stage.classList.add('film-loaded');
+      if (!framesReady) { if (loadedCount) makeReady(); else failFilm(); }
+    };
+    const pump = () => {
+      while (active < 6 && next < order.length) {
+        const i = order[next++];
+        active++;
+        const img = new Image();
+        img.decoding = 'async';
+        if ('fetchPriority' in img) img.fetchPriority = 'low';
+        img.onload = () => {
+          imgs[i] = img; loaded[i] = 1; loadedCount++; active--;
+          lastLoadAt = performance.now();
+          if (lastLoadAt - lastRing > 100) { lastRing = lastLoadAt; ring.style.setProperty('--ld', Math.round(126 * (1 - loadedCount / FRAMES))); }
+          if (!framesReady && loadedCount >= readyCount) makeReady();
+          else if (framesReady && Math.abs(i - fd) <= 1.5) drawFrame(fd, true);
+          pump(); settle();
+        };
+        img.onerror = () => { failedCount++; active--; pump(); settle(); };
+        img.src = frameUrl(i);
+      }
+    };
+    pump();
+    const watch = () => {
+      if (framesReady || filmFailed) return;
+      if (performance.now() - lastLoadAt > 20000) failFilm(); else setTimeout(watch, 2000);
+    };
+    setTimeout(watch, 2000);
+  }
+  function makeReady() {
+    if (framesReady || filmFailed) return;
+    framesReady = true;
+    sizeCanvas();
+    drawFrame(fd, true);
+    stage.classList.add('film-ready');
+    onScroll();
+  }
+  function failFilm() {
+    if (filmFailed || framesReady) return;
+    filmFailed = true;
+    ring.style.display = 'none';
+    stage.classList.add('film-failed');
+    posterEnd.style.backgroundImage = "url('assets/hero-ending.jpg')";
+    updateCaptions(shown, performance.now(), true);
+  }
+
+  /* Two eases, one loop that rests. The film's progress trails the gliding page,
+     and when everything stops the picture settles onto the nearest whole frame. */
+  let target = 0, shown = 0, fd = 0, rafId = null, lastTick = 0, heroOnScreen = true, scrubOn = false;
   function tick(now) {
     const dt = Math.min(100, now - (lastTick || now));
     lastTick = now;
-    const k = 0.1;   // the film eases after the gliding page, so it drifts on for a moment
-    shown += (target - shown) * (1 - Math.pow(1 - k, dt / 16.667));
-    let converged = false;
-    if (Math.abs(target - shown) < 0.0005) {
-      shown = target;
-      rafId = null;
-      lastTick = 0;
-      converged = true;
-    } else {
-      rafId = requestAnimationFrame(tick);
-    }
-    if (videoReady) requestSeek(shown * video.duration);
-    updateCaptions(shown, now, converged);
+    const ease = n => 1 - Math.pow(1 - n, dt / 16.667);
+    shown += (target - shown) * ease(0.1);
+    const resting = Math.abs(target - shown) < 0.0005;
+    if (resting) shown = target;
+    const goal = resting ? Math.round(shown * (FRAMES - 1)) : shown * (FRAMES - 1);
+    fd += (goal - fd) * ease(resting ? 0.18 : 0.5);
+    const settled = resting && Math.abs(goal - fd) < 0.01;
+    if (settled) fd = goal;
+    drawFrame(fd);
+    updateCaptions(shown, now, settled);
+    if (settled) { rafId = null; lastTick = 0; } else rafId = requestAnimationFrame(tick);
   }
   function onScroll() {
     target = heroProgress();
@@ -311,62 +410,6 @@
     heroOnScreen = es[0].isIntersecting;
     if (heroOnScreen) onScroll();
   }).observe(hero);
-
-  /* The streamed Blob loader. The poster wins the bandwidth race, the ring is honest,
-     and a stalled stream aborts into the still-image journey. */
-  let heroInit = false, fetchStarted = false;
-  function startBlobFetch() {
-    if (fetchStarted) return;
-    fetchStarted = true;
-    loadHeroBlob().catch(failVideo);
-  }
-  async function loadHeroBlob() {
-    const ctrl = new AbortController();
-    let watchdog = setTimeout(() => ctrl.abort(), 20000);
-    const res = await fetch(VIDEO_URL, { priority: 'low', signal: ctrl.signal });
-    if (!res.ok) throw new Error('Video request failed: ' + res.status);
-    const total = Number(res.headers.get('Content-Length')) || VIDEO_BYTES;
-    let blob;
-    if (res.body && res.body.getReader) {
-      const reader = res.body.getReader();
-      const chunks = [];
-      let got = 0, lastRing = 0;
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        clearTimeout(watchdog);
-        watchdog = setTimeout(() => ctrl.abort(), 20000);
-        chunks.push(value);
-        got += value.length;
-        const frac = Math.min(1, got / total);
-        const now = performance.now();
-        if (now - lastRing > 100 || frac === 1) {
-          lastRing = now;
-          ring.style.setProperty('--ld', Math.round(126 * (1 - frac)));
-        }
-      }
-      blob = new Blob(chunks, { type: 'video/mp4' });
-    } else {
-      blob = await res.blob();
-    }
-    clearTimeout(watchdog);
-    ring.style.setProperty('--ld', 0);
-    video.src = URL.createObjectURL(blob);
-    video.load();
-    video.addEventListener('canplay', () => {
-      videoReady = true;
-      requestSeek(heroProgress() * video.duration);
-      stage.classList.add('video-ready');
-    }, { once: true });
-  }
-  function failVideo() {
-    if (videoFailed || videoReady) return;
-    videoFailed = true;
-    ring.style.display = 'none';
-    stage.classList.add('video-failed');
-    posterEnd.style.backgroundImage = "url('assets/hero-ending.jpg')";
-    updateCaptions(shown, performance.now(), true);
-  }
 
   function startLoadRamp() {
     let t0 = 0;
@@ -382,15 +425,19 @@
     setTimeout(go, 900);
   }
 
+  // The poster and the page win the bandwidth race: frames start once the poster has
+  // painted (or failed) and the page itself has finished loading.
+  let heroInit = false;
   function initHeroOnce() {
     if (heroInit) return;
     heroInit = true;
     poster.style.backgroundImage = `url('${POSTER_URL}')`;
+    const afterLoad = () => (document.readyState === 'complete' ? setTimeout(startFrames, 0) : addEventListener('load', () => setTimeout(startFrames, 0), { once: true }));
     const img = new Image();
-    img.onload = startBlobFetch;
-    img.onerror = startBlobFetch;
+    img.onload = afterLoad;
+    img.onerror = afterLoad;
     img.src = POSTER_URL;
-    setTimeout(startBlobFetch, 4000);
+    setTimeout(startFrames, 5000);
     startLoadRamp();
   }
 
@@ -402,8 +449,9 @@
     bands.forEach(b => { b.op = -1; b.k = -1; b.vis = undefined; b.cta = null; });
     hudOff = null; lastLabel = ''; lastEnd = -1;
     target = shown = heroProgress();
+    fd = shown * (FRAMES - 1);
+    if (framesReady) { sizeCanvas(); drawFrame(fd, true); }
     updateCaptions(shown, performance.now(), true);
-    if (videoReady) requestSeek(shown * video.duration);
     onScroll();
   }
   function disableScrub() {
@@ -842,7 +890,7 @@
     sizeRings();
     measureHow();
     howLast = -1;
-    if (scrubOn) onScroll();
+    if (scrubOn) { sizeCanvas(); drawFrame(fd, true); onScroll(); }
     onPageScroll();
   });
   addEventListener('load', () => { measureHow(); onPageScroll(); });
