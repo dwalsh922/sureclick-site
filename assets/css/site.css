@@ -226,6 +226,15 @@ html:not(.js) .wall-index{display:none}
 @keyframes glow{from{opacity:.25}to{opacity:.8}}
 .receipt-num{font-family:var(--f-display);font-weight:700;font-size:clamp(3.6rem,6.4vw,6rem);line-height:1;letter-spacing:-.04em;margin-top:.6rem;display:flex;align-items:baseline;gap:.2em;color:#fff}
 .receipt-num .unit{font-family:var(--f-mono);font-size:.3em;letter-spacing:.05em;color:var(--accent);font-weight:500}
+.bench{margin-top:1.3rem}
+.bench-track{position:relative;height:6px;border-radius:99px;background:rgba(154,168,192,.2)}
+.bench-fill{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-hover));transform:scaleX(var(--b,0));transform-origin:left;transition:transform 1.3s var(--ease-out)}
+.bench-mark{position:absolute;left:75%;top:-5px;bottom:-5px;width:2px;margin-left:-1px;border-radius:2px;background:var(--text-secondary)}
+.bench-scale{position:relative;height:1.3em;margin-top:.55rem;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;color:var(--text-secondary)}
+.bench-scale span{position:absolute;top:0;white-space:nowrap}
+.bench-scale span:first-child{left:0}
+.bench-scale span:last-child{left:75%;transform:translateX(-50%)}
+.receipt.no-data .bench{display:none}
 .receipt .note{margin-top:.9rem;color:var(--text-secondary);font-size:.95rem;max-width:34ch}
 .receipt.no-data .receipt-num{display:none}
 .facts{display:flex;flex-wrap:wrap;gap:12px 36px;margin-top:clamp(40px,6vh,64px);padding-top:26px;border-top:1px solid var(--line)}
@@ -363,12 +372,6 @@ html:not(.js) .wall-index{display:none}
 .wall-index li.on a::before{width:34px;background:var(--accent)}
 .wall-index a:hover{color:var(--text-primary)}
 .wall-hint{position:absolute;top:110px;left:0;right:0;text-align:center}
-.logos{display:flex;align-items:center;gap:clamp(20px,4vw,64px);flex-wrap:wrap;padding-top:clamp(40px,8vh,90px)}
-.logos .label{flex-basis:100%}
-.logos ul{display:flex;align-items:center;gap:clamp(28px,5vw,72px);flex-wrap:wrap}
-.logos img{height:46px;width:auto;filter:grayscale(1) brightness(1.35);mix-blend-mode:screen;opacity:.72;transition:opacity .4s var(--ease-out),filter .4s var(--ease-out)}
-.logos img.tall{height:66px}
-.logos li:hover img{opacity:1;filter:none}
 
 /* ---------- 04 How it works ---------- */
 .how-track{position:relative}
@@ -467,7 +470,6 @@ html:not(.js) .wall-index{display:none}
 .foot li{margin-bottom:.35rem}
 .foot li a{text-decoration:none;color:#C3CEDF;display:inline-flex;min-height:36px;align-items:center;transition:color .3s var(--ease-out)}
 .foot li a:hover{color:var(--accent)}
-.wordmark{font-family:var(--f-display);font-weight:700;font-size:clamp(4.4rem,19vw,19rem);line-height:.8;letter-spacing:-.06em;color:transparent;-webkit-text-stroke:1px rgba(154,168,192,.22);margin-top:clamp(40px,7vh,80px);white-space:nowrap;user-select:none;text-align:center}
 .foot-base{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:28px;color:#6F7C94;font-size:.88rem}
 .foot-base a{color:inherit;text-decoration:none}
 .foot-base a:hover{color:var(--text-primary)}

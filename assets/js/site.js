@@ -572,12 +572,15 @@
     const ms = nav && nav.loadEventEnd > 0 ? nav.loadEventEnd - nav.startTime : 0;
     if (!(ms > 0)) { receipt.classList.add('no-data'); return; }
     receiptTarget = ms / 1000;
-    if (reduced()) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); return; }
+    const bench = () => receipt.style.setProperty('--b', Math.min(1, receiptTarget / 4).toFixed(3));  // the bar runs 0 to 4 s, Google's 3 s mark sits at 75%
+    receipt.benchNow = bench;
+    if (reduced()) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); bench(); return; }
     if (receiptSeen) countReceipt();
   }
   function countReceipt() {
     if (receiptShown || receiptTarget === null) return;
     receiptShown = true;
+    receipt.benchNow();
     if (reduced()) { receiptVal.textContent = receiptTarget.toFixed(2); return; }
     let t0 = 0, last = '';
     const step = now => {
@@ -866,7 +869,7 @@
       $('.form-done', form).hidden = false;
       form.classList.add('sent');
     } catch (_) {
-      status.textContent = "That didn't send. Please email info@sureclick.ie or call 087 217 2711.";
+      status.textContent = "That didn't send. Please email info@sureclick.ie or call 083 054 6973.";
       status.classList.add('err');
     } finally {
       btn.disabled = false;
@@ -909,7 +912,7 @@
     howLast = -1;
     updateHowLine();
     if (!isDone) complete(true);
-    if (receiptTarget !== null) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); }
+    if (receiptTarget !== null) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); receipt.benchNow(); }
     rings = [];
     setHoldLabel();
   }
