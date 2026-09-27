@@ -35,6 +35,7 @@
 /* ---------- Base ---------- */
 *,*::before,*::after{box-sizing:border-box}
 html{overflow-x:hidden;overflow-x:clip;max-width:100vw;scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+html.glide{scroll-behavior:auto}
 body{margin:0;overflow-x:hidden;overflow-x:clip;max-width:100vw;background:var(--canvas);color:var(--text-primary);font-family:var(--f-body);font-size:1.0625rem;line-height:1.6;-webkit-font-smoothing:antialiased;transition:opacity .9s var(--ease-out)}
 .js body{opacity:0}
 .js body.is-ready{opacity:1}
@@ -365,8 +366,8 @@ html:not(.js) .wall-index{display:none}
 .logos{display:flex;align-items:center;gap:clamp(20px,4vw,64px);flex-wrap:wrap;padding-top:clamp(40px,8vh,90px)}
 .logos .label{flex-basis:100%}
 .logos ul{display:flex;align-items:center;gap:clamp(28px,5vw,72px);flex-wrap:wrap}
-.logos img{height:auto;width:auto;max-height:46px;filter:grayscale(1) brightness(1.35);mix-blend-mode:screen;opacity:.72;transition:opacity .4s var(--ease-out),filter .4s var(--ease-out)}
-.logos img.tall{max-height:66px}
+.logos img{height:46px;width:auto;filter:grayscale(1) brightness(1.35);mix-blend-mode:screen;opacity:.72;transition:opacity .4s var(--ease-out),filter .4s var(--ease-out)}
+.logos img.tall{height:66px}
 .logos li:hover img{opacity:1;filter:none}
 
 /* ---------- 04 How it works ---------- */

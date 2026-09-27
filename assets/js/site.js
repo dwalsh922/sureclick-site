@@ -28,6 +28,116 @@
   const gated = () => MQLS.some(m => m.matches);
 
   /* =========================================================
+     GLIDE: inertial page scroll for mouse and trackpad.
+     The wheel moves a target and the page eases toward it, so the
+     whole page (and everything scrubbed off it) carries on for a beat
+     after the visitor stops. Touch keeps its own native momentum.
+     ========================================================= */
+  const FINE = matchMedia('(hover: hover) and (pointer: fine)');
+  const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const glide = (() => {
+    const LERP = 0.075;            // share of the gap closed per 60fps frame; lower glides longer
+    let on = false, raf = null, last = 0, lastSet = -1;
+    let target = 0, current = 0;
+    let tween = null;              // programmatic glides (anchor links) use a timed ease instead
+    const maxScroll = () => Math.max(0, document.documentElement.scrollHeight - innerHeight);
+    function frame(now) {
+      const dt = Math.min(64, now - (last || now));
+      last = now;
+      let done;
+      if (tween) {
+        const t = clamp((now - tween.t0) / tween.dur, 0, 1);
+        current = tween.from + (tween.to - tween.from) * easeInOut(t);
+        target = current;
+        done = t >= 1;
+        if (done) {
+          // Late-loading content can move the destination: settle on where it is now.
+          const fix = tween.el ? clamp(tween.el.getBoundingClientRect().top + scrollY, 0, maxScroll()) : current;
+          tween = null;
+          if (Math.abs(fix - current) > 1) { target = fix; done = false; }
+        }
+      } else {
+        current += (target - current) * (1 - Math.pow(1 - LERP, dt / 16.667));
+        done = Math.abs(target - current) < 0.4;
+        if (done) current = target;
+      }
+      lastSet = Math.round(current);
+      scrollTo(0, current);
+      if (done) { raf = null; last = 0; } else raf = requestAnimationFrame(frame);
+    }
+    const kick = () => { if (raf === null) raf = requestAnimationFrame(frame); };
+    function canScrollInside(el, dy) {
+      for (; el && el !== document.body && el !== document.documentElement; el = el.parentElement) {
+        const oy = getComputedStyle(el).overflowY;
+        if ((oy === 'auto' || oy === 'scroll') && el.scrollHeight > el.clientHeight + 1) {
+          if (dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return true;
+        }
+      }
+      return false;
+    }
+    function onWheel(e) {
+      if (e.ctrlKey || e.defaultPrevented || document.body.style.overflow === 'hidden') return;
+      let dy = e.deltaY;
+      if (Math.abs(e.deltaX) > Math.abs(dy)) return;
+      if (e.deltaMode === 1) dy *= 40; else if (e.deltaMode === 2) dy *= innerHeight;
+      if (canScrollInside(e.target, dy)) return;
+      e.preventDefault();
+      if (raf === null) current = target = scrollY;
+      if (tween) { tween = null; target = current; }
+      target = clamp(target + dy, 0, maxScroll());
+      kick();
+    }
+    function onScroll() {
+      // Keyboard, scrollbar or find-in-page moved the page: follow it, never fight it.
+      if (Math.abs(scrollY - lastSet) > 2) {
+        if (raf !== null) { cancelAnimationFrame(raf); raf = null; last = 0; }
+        tween = null;
+        current = target = lastSet = scrollY;
+      }
+    }
+    function to(y, el) {
+      y = clamp(y, 0, maxScroll());
+      if (!on) { scrollTo({ top: y, behavior: reduced() ? 'auto' : 'smooth' }); return; }
+      const from = raf === null ? scrollY : current;
+      const dist = Math.abs(y - from);
+      tween = { from, to: y, el, t0: performance.now(), dur: clamp(700 + dist * 0.12, 800, 2000) };
+      last = 0;
+      kick();
+    }
+    function enable() {
+      if (on) return;
+      on = true;
+      document.documentElement.classList.add('glide');
+      current = target = lastSet = scrollY;
+      addEventListener('wheel', onWheel, { passive: false });
+      addEventListener('scroll', onScroll, { passive: true });
+    }
+    function disable() {
+      if (!on) return;
+      on = false;
+      document.documentElement.classList.remove('glide');
+      removeEventListener('wheel', onWheel);
+      removeEventListener('scroll', onScroll);
+      if (raf !== null) { cancelAnimationFrame(raf); raf = null; last = 0; }
+      tween = null;
+    }
+    return { enable, disable, to, get on() { return on; } };
+  })();
+  const applyGlide = () => (FINE.matches && !reduced() ? glide.enable() : glide.disable());
+
+  // In-page links glide there too (the skip link stays an instant jump for keyboard users).
+  document.addEventListener('click', e => {
+    if (!glide.on || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    const a = e.target.closest('a[href^="#"]');
+    if (!a || a.classList.contains('skip')) return;
+    const id = a.getAttribute('href');
+    const el = id.length > 1 ? document.getElementById(id.slice(1)) : null;
+    if (!el) return;
+    e.preventDefault();
+    glide.to(el.getBoundingClientRect().top + scrollY, el);
+  });
+
+  /* =========================================================
      HERO: the scroll-scrubbed drop
      ========================================================= */
   const hero = $('.hero');
@@ -179,7 +289,7 @@
   function tick(now) {
     const dt = Math.min(100, now - (lastTick || now));
     lastTick = now;
-    const k = 0.14;
+    const k = 0.1;   // the film eases after the gliding page, so it drifts on for a moment
     shown += (target - shown) * (1 - Math.pow(1 - k, dt / 16.667));
     let converged = false;
     if (Math.abs(target - shown) < 0.0005) {
@@ -612,8 +722,7 @@
     const i = +a.dataset.jump;
     const range = wall.offsetHeight - innerHeight;
     const p = clamp((i + 1.2 - T0) / TSPAN, 0, 1);
-    const top = wall.getBoundingClientRect().top + scrollY + p * range;
-    scrollTo({ top, behavior: reduced() ? 'auto' : 'smooth' });
+    glide.to(wall.getBoundingClientRect().top + scrollY + p * range);
   }));
 
   /* =========================================================
@@ -765,11 +874,14 @@
   }
   MQLS.forEach(m => onMQ(m, applyHeroMode));
   onMQ(RM, e => {
+    applyGlide();
     if (e.matches) pinToFinalStates();
     else { unpinFinalStates(); applyHeroMode(); }
   });
+  onMQ(FINE, applyGlide);
 
   measureHow();
+  applyGlide();
   applyHeroMode();
   if (reduced()) pinToFinalStates();
   pageFrame();
