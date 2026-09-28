@@ -68,53 +68,132 @@
 <main id="main" tabindex="-1">
   <h1 class="sr-only">SureClick: web design in Dublin for Irish businesses</h1>
 
-  <!-- ============ HERO: the drop ============ -->
+  <!-- ============ HERO: the build ============
+       A website builds itself as you scroll: chat, design, build, live.
+       Everything here is drawn in code. The markup's default state is the finished,
+       live site, so no-JS and reduced-motion visitors get the final picture. -->
   <section class="hero" id="hero" aria-label="Introduction">
     <div class="stage">
-      <div class="poster" aria-hidden="true"></div>
-      <div class="poster-end" aria-hidden="true"></div>
-      <canvas class="hero-canvas" aria-hidden="true"></canvas>
-      <div class="scrim" aria-hidden="true"></div>
+      <div class="stage-glow" aria-hidden="true"></div>
 
-      <div class="band b1 left fx-drift" data-a="0" data-b="0.18">
+      <div class="band b1 fx-rise" data-a="0" data-b="0.22">
         <p class="kicker mono">SureClick · Web design · Dublin</p>
-        <p class="band-head split">People judge a website in the <em>blink</em> of an eye.</p>
+        <p class="band-head split">Every great website starts with a <em>conversation</em>.</p>
+        <p class="band-sub">We learn what you do, who you help and what a good month looks like for you.</p>
       </div>
 
-      <div class="band b2 right low fx-punch" data-a="0.21" data-b="0.41">
-        <p class="band-head big split">Fifty milliseconds.</p>
-        <p class="band-sub">That's how long people take to judge the look of a website. In a Carleton University study, snap verdicts made in a twentieth of a second closely matched the ones made with more time to look.</p>
+      <div class="band b2 fx-snap" data-a="0.25" data-b="0.47" data-spread="0.5">
+        <p class="kicker mono">02 · The design</p>
+        <p class="band-head split">Then we <em>design</em> it around your customers.</p>
+        <p class="band-sub">People judge the look of a website in a twentieth of a second. Every section is planned to win that glance and point to one clear next step.</p>
       </div>
 
-      <div class="band b3 left fx-ripple" data-a="0.45" data-b="0.68" data-ramp="0.034" data-spread="0.45">
-        <p class="band-head split">Get it right, and it <em>spreads</em>.</p>
-        <p class="band-sub">More calls. More bookings. More people telling their friends about you.</p>
+      <div class="band b3 fx-punch" data-a="0.5" data-b="0.72">
+        <p class="kicker mono">03 · The build</p>
+        <p class="band-head split">Built by <em>hand</em>. Fast on every phone.</p>
+        <p class="band-sub">No templates or page builders. Clean code that loads quickly and looks right on every screen.</p>
       </div>
 
-      <div class="band b4 settle fx-rise" data-a="0.73" data-b="1" data-ramp="0.06">
+      <div class="band b4 settle fx-rise" data-a="0.76" data-b="1" data-ramp="0.05">
         <p class="kicker mono">Web design for Irish businesses</p>
         <p class="band-head display split">Websites, <em>crafted</em> in Dublin.</p>
-        <p class="band-sub">SureClick designs fast, beautiful websites for Irish businesses. Made to win the first impression, and turn visitors into calls.</p>
+        <p class="band-sub">SureClick designs and builds fast, beautiful websites for Irish businesses. From €500, with free hosting forever.</p>
         <div class="band-cta">
           <a class="btn btn-accent" href="#contact">Start your website <span class="arr" aria-hidden="true">→</span></a>
           <a class="btn btn-ghost" href="#work">See our work</a>
         </div>
       </div>
 
-      <div class="hud" aria-hidden="true"><span class="label">First impression</span><span class="ms mono">00 ms</span></div>
-      <svg class="ring" viewBox="0 0 48 48" aria-hidden="true">
-        <circle class="track" cx="24" cy="24" r="20" fill="none" stroke-width="3"/>
-        <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="126" style="stroke-dashoffset:var(--ld,126)"/>
-      </svg>
-    </div>
+      <div class="scene" aria-hidden="true">
+        <div class="rig">
+          <div class="browser">
+            <div class="b-bar">
+              <span class="dots"><i></i><i></i><i></i></span>
+              <span class="b-url">
+                <svg class="lock" viewBox="0 0 12 14" data-fx="fade" data-a="0.885" data-d="0.02"><rect x="1" y="6" width="10" height="7" rx="1.5"/><path d="M3.5 6V4.2a2.5 2.5 0 0 1 5 0V6" fill="none"/></svg>
+                <span class="b-domain">petalwick.ie</span>
+                <span class="pill draft" data-fx="out" data-a="0.885" data-d="0.02">Draft</span>
+                <span class="pill live" data-fx="fade" data-a="0.885" data-d="0.02"><b></b>Live</span>
+              </span>
+              <span class="b-tag">Example</span>
+            </div>
+            <div class="b-view">
+              <!-- the finished site -->
+              <div class="site">
+                <div class="s-nav" data-fx="rise" data-a="0.52" data-d="0.04"><span class="s-logo">Petalwick</span><span class="s-links"><i>Shop</i><i>Weddings</i><i>About</i><i>Contact</i></span></div>
+                <div class="s-head" data-fx="rise" data-a="0.55" data-d="0.05">Flowers that say it <em>for</em> you.</div>
+                <div class="s-sub" data-fx="fade" data-a="0.58" data-d="0.04">Hand-tied bouquets, delivered across Dublin the same day.</div>
+                <div class="s-btn" data-fx="btn" data-a="0.6" data-d="0.04" data-press="0.865">Order flowers</div>
+                <div class="s-alt" data-fx="fade" data-a="0.61" data-d="0.03">or call the shop</div>
+                <div class="s-photo" data-fx="drop" data-a="0.53" data-d="0.06"><img src="assets/hero/bouquet.jpg" alt="" width="900" height="678" decoding="async"></div>
+                <div class="s-card c1" data-fx="rise" data-a="0.61" data-d="0.05"><img src="assets/hero/birthday.jpg" alt="" width="240" height="240" decoding="async"><b>Birthdays</b><span>From €35</span></div>
+                <div class="s-card c2" data-fx="rise" data-a="0.63" data-d="0.05"><img src="assets/hero/sympathy.jpg" alt="" width="240" height="240" decoding="async"><b>Sympathy</b><span>From €45</span></div>
+                <div class="s-card c3" data-fx="rise" data-a="0.65" data-d="0.05"><img src="assets/hero/weddings.jpg" alt="" width="240" height="240" decoding="async"><b>Weddings</b><span>Book a chat</span></div>
+              </div>
 
-    <div class="hero-static">
-      <p class="kicker mono label">SureClick · Web design · Dublin</p>
-      <p class="display">Websites, <em>crafted</em> in Dublin.</p>
-      <p class="band-sub">People judge how a website looks in about 50 milliseconds. We design the ones that win that moment, then turn visitors into calls.</p>
-      <div class="band-cta">
-        <a class="btn btn-accent" href="#contact">Start your website <span class="arr" aria-hidden="true">→</span></a>
-        <a class="btn btn-ghost" href="#work">See our work</a>
+              <!-- the blank page and its blueprint -->
+              <div class="blue" data-fx="out" data-a="0.5" data-d="0.05"></div>
+              <svg class="wire" viewBox="0 0 1000 625" data-fx="out" data-a="0.58" data-d="0.08">
+                <path pathLength="1" d="M0 70H1000" data-fx="draw" data-a="0.25" data-d="0.05"/>
+                <rect pathLength="1" x="48" y="22" width="150" height="30" rx="4" data-fx="draw" data-a="0.26" data-d="0.04"/>
+                <path pathLength="1" d="M600 37H660" data-fx="draw" data-a="0.27" data-d="0.03"/>
+                <path pathLength="1" d="M680 37H740" data-fx="draw" data-a="0.275" data-d="0.03"/>
+                <path pathLength="1" d="M760 37H830" data-fx="draw" data-a="0.28" data-d="0.03"/>
+                <path pathLength="1" d="M850 37H952" data-fx="draw" data-a="0.285" data-d="0.03"/>
+                <rect pathLength="1" x="48" y="128" width="400" height="40" rx="4" data-fx="draw" data-a="0.29" data-d="0.05"/>
+                <rect pathLength="1" x="48" y="180" width="300" height="40" rx="4" data-fx="draw" data-a="0.3" data-d="0.05"/>
+                <rect pathLength="1" x="520" y="110" width="432" height="330" rx="14" data-fx="draw" data-a="0.3" data-d="0.06"/>
+                <path pathLength="1" d="M48 290H440" data-fx="draw" data-a="0.31" data-d="0.04"/>
+                <path pathLength="1" d="M48 312H380" data-fx="draw" data-a="0.315" data-d="0.04"/>
+                <rect pathLength="1" x="48" y="372" width="180" height="46" rx="10" data-fx="draw" data-a="0.33" data-d="0.04"/>
+                <path pathLength="1" d="M520 110L952 440" data-fx="draw" data-a="0.34" data-d="0.04"/>
+                <path pathLength="1" d="M952 110L520 440" data-fx="draw" data-a="0.345" data-d="0.04"/>
+                <rect pathLength="1" x="48" y="470" width="292" height="130" rx="12" data-fx="draw" data-a="0.36" data-d="0.05"/>
+                <rect pathLength="1" x="354" y="470" width="292" height="130" rx="12" data-fx="draw" data-a="0.37" data-d="0.05"/>
+                <rect pathLength="1" x="660" y="470" width="292" height="130" rx="12" data-fx="draw" data-a="0.38" data-d="0.05"/>
+                <rect pathLength="1" x="60" y="482" width="106" height="106" rx="8" data-fx="draw" data-a="0.37" data-d="0.04"/>
+                <rect pathLength="1" x="366" y="482" width="106" height="106" rx="8" data-fx="draw" data-a="0.38" data-d="0.04"/>
+                <rect pathLength="1" x="672" y="482" width="106" height="106" rx="8" data-fx="draw" data-a="0.39" data-d="0.04"/>
+                <path pathLength="1" d="M186 516H300" data-fx="draw" data-a="0.38" data-d="0.03"/>
+                <path pathLength="1" d="M186 540H262" data-fx="draw" data-a="0.385" data-d="0.03"/>
+                <path pathLength="1" d="M492 516H606" data-fx="draw" data-a="0.39" data-d="0.03"/>
+                <path pathLength="1" d="M492 540H568" data-fx="draw" data-a="0.395" data-d="0.03"/>
+                <path pathLength="1" d="M798 516H912" data-fx="draw" data-a="0.4" data-d="0.03"/>
+                <path pathLength="1" d="M798 540H874" data-fx="draw" data-a="0.405" data-d="0.03"/>
+              </svg>
+
+              <div class="bub b1" data-fx="pop" data-a="-1" data-d="0.03" data-xa="0.195" data-xd="0.035"><span>Client</span>We need more orders from our website.</div>
+              <div class="bub b2 us" data-fx="pop" data-a="0.055" data-d="0.035" data-xa="0.2" data-xd="0.035"><span>SureClick</span>Then ordering should take one tap, on any phone.</div>
+              <div class="bub b3" data-fx="pop" data-a="0.11" data-d="0.035" data-xa="0.205" data-xd="0.035"><span>Client</span>And it has to look as good as our flowers.</div>
+
+              <div class="note n1" data-fx="pop" data-a="0.33" data-d="0.03" data-xa="0.48" data-xd="0.03">Headline: say what you do in 3 seconds</div>
+              <div class="note n2" data-fx="pop" data-a="0.36" data-d="0.03" data-xa="0.485" data-xd="0.03">One clear button</div>
+              <div class="note n3" data-fx="pop" data-a="0.39" data-d="0.03" data-xa="0.49" data-xd="0.03">Real photos, not stock</div>
+
+              <span class="ripple" data-fx="ring" data-a="0.87" data-d="0.08"></span>
+            </div>
+          </div>
+
+          <div class="phone" data-fx="slide" data-a="0.64" data-d="0.07">
+            <div class="p-screen">
+              <div class="p-toast" data-fx="pop" data-a="0.9" data-d="0.04"><b></b><span>New order</span><em>just now</em></div>
+              <div class="p-nav">Petalwick</div>
+              <div class="p-photo"><img src="assets/hero/bouquet.jpg" alt="" width="900" height="678" decoding="async"></div>
+              <div class="p-head">Flowers that say it <em>for</em> you.</div>
+              <div class="p-btn">Order flowers</div>
+            </div>
+          </div>
+
+          <svg class="cursor" viewBox="0 0 40 40" data-fx="cursor" data-a="0.76" data-d="0.1">
+            <defs><linearGradient id="cursor-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FD8FF"/><stop offset="1" stop-color="#6B5CFF"/></linearGradient></defs>
+            <path d="M3 3 L36 16 L21 21 L16 36 Z" fill="url(#cursor-g)" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="rail" aria-hidden="true">
+        <span data-s="1">01 Chat</span><span data-s="2">02 Design</span><span data-s="3">03 Build</span><span data-s="4">04 Live</span>
+        <i class="rail-bar"><b></b></i>
       </div>
     </div>
   </section>
