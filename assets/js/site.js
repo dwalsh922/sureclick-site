@@ -13,8 +13,6 @@
   const reduced = () => RM.matches;
   const onMQ = (m, fn) => (m.addEventListener ? m.addEventListener('change', fn) : m.addListener(fn));
 
-  /* The page itself eases in */
-  requestAnimationFrame(() => document.body.classList.add('is-ready'));
 
   /* The five static-hero gates. Character for character the same as the CSS. */
   const GATES = [
@@ -383,10 +381,7 @@
       if (scrubOn) updateCaptions(shown);
       if (loadK < 1) requestAnimationFrame(step);
     };
-    let went = false;
-    const go = () => { if (!went) { went = true; requestAnimationFrame(step); } };
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(go);
-    setTimeout(go, 900);
+    requestAnimationFrame(step);   // fonts are preloaded and swap in, so the opening line assembles straight away
   }
 
   function enableScrub() {
