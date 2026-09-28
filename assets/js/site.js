@@ -123,16 +123,37 @@
   })();
   const applyGlide = () => (FINE.matches && !reduced() ? glide.enable() : glide.disable());
 
-  // In-page links glide there too (the skip link stays an instant jump for keyboard users).
+  // A refresh always starts at the very top: no restored scroll position, no #section jump.
+  // Arriving from another page with a #section (e.g. "Pricing" on the Swords page) still lands
+  // on that section once the page is laid out (see the end of this file); either way the
+  // address bar is left clean, so the next refresh starts at the top.
+  const navEntry = performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+  const arrivedAt = location.hash && !(navEntry && (navEntry.type === 'reload' || navEntry.type === 'back_forward')) ? location.hash.slice(1) : '';
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  scrollTo(0, 0);
+  addEventListener('hashchange', () => history.replaceState(null, '', location.pathname + location.search));
+
+  // In-page links (menu, buttons, logo) glide or smooth-scroll to their section without
+  // writing #section into the address bar. "#top" is the very top of the page.
+  // The skip link stays an instant jump for keyboard users.
   document.addEventListener('click', e => {
-    if (!glide.on || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
     const a = e.target.closest('a[href^="#"]');
     if (!a || a.classList.contains('skip')) return;
-    const id = a.getAttribute('href');
-    const el = id.length > 1 ? document.getElementById(id.slice(1)) : null;
-    if (!el) return;
+    const id = a.getAttribute('href').slice(1);
+    const toTop = !id || id === 'top';
+    const el = toTop ? null : document.getElementById(id);
+    if (!toTop && !el) return;
     e.preventDefault();
-    glide.to(el.getBoundingClientRect().top + scrollY, el);
+    const y = el ? el.getBoundingClientRect().top + scrollY : 0;
+    if (glide.on) glide.to(y, el);
+    else scrollTo({ top: y, behavior: reduced() ? 'auto' : 'smooth' });
+    // Keyboard users: move focus with the scroll so the next Tab continues from there.
+    if (e.detail === 0) {
+      const f = el || document.getElementById('main');
+      if (f) { if (!f.hasAttribute('tabindex')) f.setAttribute('tabindex', '-1'); f.focus({ preventScroll: true }); }
+    }
   });
 
   /* =========================================================
@@ -926,4 +947,20 @@
   applyHeroMode();
   if (reduced()) pinToFinalStates();
   pageFrame();
+
+  // Arrived from another page with a #section: jump there now that the hero has its full height,
+  // then once more when the fonts are in (they shorten the sections above), unless the visitor
+  // has already started scrolling. 'instant' skips the CSS smooth scroll.
+  if (arrivedAt) {
+    const el = document.getElementById(arrivedAt);
+    if (el) {
+      const land = () => scrollTo({ top: el.getBoundingClientRect().top + scrollY, behavior: 'instant' });
+      let moved = false;
+      const mark = () => { moved = true; };
+      ['wheel', 'touchstart', 'keydown'].forEach(t => addEventListener(t, mark, { once: true, passive: true }));
+      requestAnimationFrame(land);
+      const loaded = document.readyState === 'complete' ? null : new Promise(r => addEventListener('load', r, { once: true }));
+      Promise.all([document.fonts ? document.fonts.ready : null, loaded]).then(() => requestAnimationFrame(() => { if (!moved) land(); }));
+    }
+  }
 })();
