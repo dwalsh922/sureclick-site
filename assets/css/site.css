@@ -136,7 +136,7 @@ main{position:relative;z-index:1}
 
 /* split text */
 .vis{display:inline}
-.w{display:inline-block;white-space:nowrap;will-change:transform}
+.w{display:inline-block;white-space:nowrap}
 .wg{display:inline-block;white-space:nowrap}
 .w.em{font-family:var(--f-serif);font-style:italic;font-weight:400;letter-spacing:0;color:var(--em);position:relative;padding-right:.05em}
 .band .w.em::after,.hero:not(.scrub) .band em::after{content:"";position:absolute;left:0;right:0;bottom:-.02em;height:.2em;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 8'%3E%3Cpath d='M0 4 Q5 0 10 4 T20 4 T30 4 T40 4' fill='none' stroke='%235CC6FF' stroke-opacity='.8' stroke-width='1.6'/%3E%3C/svg%3E") repeat-x left center/auto 100%;clip-path:inset(0 calc((1 - var(--ku,0))*100%) 0 0)}

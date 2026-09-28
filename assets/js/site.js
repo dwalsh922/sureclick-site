@@ -220,7 +220,10 @@
   }
 
   function heroProgress() {
-    const range = hero.offsetHeight - innerHeight;
+    // Measure against the sticky stage (the visible screen height), not innerHeight,
+    // which changes when a phone's address bar shrinks mid-scroll.
+    const vh = hero.classList.contains('scrub') ? stage.clientHeight || innerHeight : innerHeight;
+    const range = hero.offsetHeight - vh;
     if (range <= 0) return 1;
     return clamp(-hero.getBoundingClientRect().top / range, 0, 1);
   }
@@ -257,11 +260,10 @@
     // Stacked screens: weight each caption's height by how visible it is, so the browser
     // eases up and down with the text instead of leaving a hole under shorter captions.
     if (shifts) {
-      let sw = 0, sv = 0;
-      bands.forEach((b, i) => { sw += b.op; sv += b.op * shifts[i]; });
-      if (sw > 0.05) heldShift = sv / sw;
-      const s = `translateY(${heldShift.toFixed(1)}px)`;
-      if (s !== lastShift) { lastShift = s; scene.style.transform = s; }
+      let best = -1, bestOp = 0.05;
+      bands.forEach((b, i) => { if (b.op > bestOp) { bestOp = b.op; best = i; } });
+      if (best >= 0 && shiftSnap) { shiftSnap = false; shiftNow = shiftFrom = shiftTo = shifts[best]; writeShift(); }
+      else if (best >= 0) startShift(shifts[best]);
     }
   }
 
@@ -280,10 +282,27 @@
   // Stacked screens (phones, portrait): the browser sits just under the tallest caption,
   // and shrinks a little if needed so it never slides behind a phone's toolbar.
   const STACKED = matchMedia('(max-width: 900px), (orientation: portrait)');
-  let shifts = null, lastShift = null, heldShift = 0;
+  // The browser glides to its new place on a timer (~0.4 s), however fast the visitor swipes.
+  let shifts = null, lastShift = null, shiftNow = 0, shiftFrom = 0, shiftTo = 0, shiftT0 = 0, shiftRaf = null, shiftSnap = true;
+  function writeShift() {
+    const s = `translateY(${shiftNow.toFixed(1)}px)`;
+    if (s !== lastShift) { lastShift = s; scene.style.transform = s; }
+  }
+  function startShift(to) {
+    if (to === shiftTo) return;
+    shiftFrom = shiftNow; shiftTo = to; shiftT0 = performance.now();
+    if (shiftRaf === null) shiftRaf = requestAnimationFrame(shiftStep);
+  }
+  function shiftStep(now) {
+    const t = clamp((now - shiftT0) / 440, 0, 1);   // eases in and out over 0.44 s
+    shiftNow = shiftFrom + (shiftTo - shiftFrom) * easeInOut(t);
+    writeShift();
+    shiftRaf = t < 1 ? requestAnimationFrame(shiftStep) : null;
+  }
   function placeScene() {
     const st = scene.style;
-    shifts = null; lastShift = null;
+    shifts = null; lastShift = null; shiftSnap = true;
+    if (shiftRaf !== null) { cancelAnimationFrame(shiftRaf); shiftRaf = null; }
     if (!STACKED.matches) { st.top = st.left = st.width = st.right = st.bottom = st.transform = ''; return; }
     const stageW = stage.clientWidth, stageH = stage.clientHeight;
     const live = bands.filter(b => getComputedStyle(b.el).display !== 'none');
@@ -365,7 +384,7 @@
     const rig3d = `rotateY(${(-11 * (1 - flat)).toFixed(2)}deg) rotateX(${(4 * (1 - flat)).toFixed(2)}deg)`;
     if (rig3d !== lastRig) { lastRig = rig3d; rig.style.transform = rig3d; }
     // The rail: which of the four steps we're on, and how far through.
-    const step = p < 0.235 ? 0 : p < 0.485 ? 1 : p < 0.74 ? 2 : 3;
+    const step = p < 0.235 ? 0 : p < 0.48 ? 1 : p < 0.725 ? 2 : 3;
     if (step !== lastRail) { lastRail = step; railSpans.forEach((s, i) => { s.classList.toggle('on', i === step); s.classList.toggle('done', i < step); }); }
     const rp = p.toFixed(3);
     if (rp !== lastRp) { lastRp = rp; railBar.style.setProperty('--rp', rp); }
@@ -386,15 +405,26 @@
 
   /* One loop that rests: the scene's progress trails the gliding page a touch. */
   let target = 0, shown = 0, rafId = null, lastTick = 0, heroOnScreen = true, scrubOn = false;
+  // Captions crossfade where neighbouring bands overlap. If the visitor stops inside a
+  // crossfade, the captions settle onto the nearer whole caption, so the screen never
+  // rests on a blend of two lines or on no line at all.
+  const XFADES = bands.slice(1).map((b, i) => [b.a, bands[i].b]).filter(([a, z]) => z > a);
+  let capP = 0;
   function tick(now) {
     const dt = Math.min(100, now - (lastTick || now));
     lastTick = now;
-    shown += (target - shown) * (1 - Math.pow(1 - 0.12, dt / 16.667));
+    const ease = n => 1 - Math.pow(1 - n, dt / 16.667);
+    shown += (target - shown) * ease(0.12);
     const settled = Math.abs(target - shown) < 0.0003;
     if (settled) shown = target;
+    let goal = shown;
+    if (settled) for (const [w0, w1] of XFADES) if (shown > w0 && shown < w1) goal = shown - w0 < w1 - shown ? w0 : w1;
+    capP += (goal - capP) * ease(settled ? 0.14 : 0.4);
+    const capDone = Math.abs(goal - capP) < 0.0003;
+    if (capDone) capP = goal;
     applyScene(shown);
-    updateCaptions(shown);
-    if (settled) { rafId = null; lastTick = 0; } else rafId = requestAnimationFrame(tick);
+    updateCaptions(capP);
+    if (settled && capDone) { rafId = null; lastTick = 0; } else rafId = requestAnimationFrame(tick);
   }
   function onScroll() {
     target = heroProgress();
@@ -414,7 +444,7 @@
     const step = now => {
       if (!t0) t0 = now;
       loadK = easeOut(clamp((now - t0) / 1400, 0, 1));
-      if (scrubOn) updateCaptions(shown);
+      if (scrubOn) updateCaptions(capP);
       if (loadK < 1) requestAnimationFrame(step);
     };
     requestAnimationFrame(step);   // fonts are preloaded and swap in, so the opening line assembles straight away
@@ -429,9 +459,9 @@
     lastRail = -1; lastRp = ''; lastRig = '';
     placeScene();
     measureScene();
-    target = shown = heroProgress();
+    target = shown = capP = heroProgress();
     applyScene(shown);
-    updateCaptions(shown);
+    updateCaptions(capP);
     startLoadRamp();
     onScroll();
   }
@@ -498,8 +528,9 @@
     if (ringRaf === null) ringRaf = requestAnimationFrame(drawRings);
   }
   sizeRings();
-  document.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
+  // Real clicks and taps only: a finger touching down to scroll is not a click.
+  document.addEventListener('click', e => {
+    if (e.detail === 0) return;   // keyboard-triggered clicks have no position
     addRing(e.clientX, e.clientY);
   }, { passive: true });
 
