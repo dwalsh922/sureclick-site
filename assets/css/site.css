@@ -397,7 +397,8 @@ html:not(.js) .wall-index{display:none}
 .wall{position:relative;height:440vh}
 .wall-stage{position:sticky;top:0;height:100vh;overflow:hidden;perspective:1300px;perspective-origin:50% 45%}
 .wall-space{position:absolute;inset:0;transform-style:preserve-3d}
-.wcard{position:absolute;left:50%;top:44%;width:min(46vw,680px);margin-left:max(-23vw,-340px);transform-style:preserve-3d;opacity:0;will-change:transform,opacity;pointer-events:none}
+/* card width also follows the window height, so card, caption and the project index always fit between the nav and the bottom */
+.wcard{--cw:min(46vw,680px,max(320px,calc((100vh - 350px) * 1.6)));position:absolute;left:50%;top:44%;width:var(--cw);margin-left:calc(var(--cw) / -2);transform-style:preserve-3d;opacity:0;will-change:transform,opacity;pointer-events:none}
 .wcard.active{pointer-events:auto}
 .wshot{display:block;border-radius:14px;overflow:hidden;background:#0B1424;border:1px solid rgba(154,168,192,.22);box-shadow:0 40px 90px -30px rgba(0,0,0,.85);text-decoration:none;transform:translateY(-50%)}
 .wshot .bar{display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;background:#101B2E;border-bottom:1px solid rgba(154,168,192,.14)}
@@ -418,6 +419,7 @@ html:not(.js) .wall-index{display:none}
 .wall-index li.on a::before{width:34px;background:var(--accent)}
 .wall-index a:hover{color:var(--text-primary)}
 .wall-hint{position:absolute;top:110px;left:0;right:0;text-align:center}
+@media (max-height:540px){.wall-index{display:none}}
 
 /* ---------- 04 How it works ---------- */
 .how-track{position:relative}
