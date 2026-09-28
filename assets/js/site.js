@@ -254,6 +254,15 @@
         if (on !== b.cta) { b.cta = on; b.el.classList.toggle('cta-on', on); }
       }
     }
+    // Stacked screens: weight each caption's height by how visible it is, so the browser
+    // eases up and down with the text instead of leaving a hole under shorter captions.
+    if (shifts) {
+      let sw = 0, sv = 0;
+      bands.forEach((b, i) => { sw += b.op; sv += b.op * shifts[i]; });
+      if (sw > 0.05) heldShift = sv / sw;
+      const s = `translateY(${heldShift.toFixed(1)}px)`;
+      if (s !== lastShift) { lastShift = s; scene.style.transform = s; }
+    }
   }
 
   /* The scene's timeline lives in the markup: every [data-fx] element names when it
@@ -268,6 +277,32 @@
   let geo = null;          // measured once per resize: cursor path in rig pixels
   let lastRail = -1, lastRp = '', lastRig = '';
 
+  // Stacked screens (phones, portrait): the browser sits just under the tallest caption,
+  // and shrinks a little if needed so it never slides behind a phone's toolbar.
+  const STACKED = matchMedia('(max-width: 900px), (orientation: portrait)');
+  let shifts = null, lastShift = null, heldShift = 0;
+  function placeScene() {
+    const st = scene.style;
+    shifts = null; lastShift = null;
+    if (!STACKED.matches) { st.top = st.left = st.width = st.right = st.bottom = st.transform = ''; return; }
+    const stageW = stage.clientWidth, stageH = stage.clientHeight;
+    const live = bands.filter(b => getComputedStyle(b.el).display !== 'none');
+    if (!live.length) return;
+    st.transform = '';
+    const gutter = live[0].el.offsetLeft;
+    const bottomOfText = Math.max(...live.map(b => b.el.offsetTop + b.el.offsetHeight));
+    // Each caption's own height: the browser glides up to sit just under the one showing.
+    shifts = bands.map(b => (live.includes(b) ? b.el.offsetTop + b.el.offsetHeight - bottomOfText : 0));
+    const top = bottomOfText + 28;
+    const bar = barEl.offsetHeight + 1;
+    let w = stageW - 2 * gutter;
+    const room = stageH - top - 16;
+    if (bar + w * 0.625 > room) w = Math.max(stageW * 0.62, (room - bar) / 0.625);
+    st.top = Math.round(top) + 'px';
+    st.bottom = st.right = 'auto';
+    st.width = Math.round(w) + 'px';
+    st.left = Math.round((stageW - w) / 2) + 'px';
+  }
   function measureScene() {
     const W = browserEl.offsetWidth;
     const bar = barEl.offsetHeight + 1;               // the bar plus its border
@@ -342,6 +377,7 @@
       q.tf = q.op = q.dash = null;
     }
     rig.style.transform = ''; lastRig = '';
+    placeScene();
     measureScene();
     const pt = cursorAt(1);
     cursorEl.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
@@ -391,6 +427,7 @@
     addEventListener('scroll', onScroll, { passive: true });
     bands.forEach(b => { b.op = -1; b.k = -1; b.vis = undefined; b.cta = null; });
     lastRail = -1; lastRp = ''; lastRig = '';
+    placeScene();
     measureScene();
     target = shown = heroProgress();
     applyScene(shown);
@@ -410,8 +447,11 @@
   }
   function heroResize() {
     geo = null;
-    if (scrubOn) { measureScene(); applyScene(shown); onScroll(); } else resetScene();
+    if (scrubOn) { placeScene(); measureScene(); applyScene(shown); onScroll(); } else resetScene();
   }
+  // Caption heights settle once the fonts arrive, so place the browser again then.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => heroResize());
+  onMQ(STACKED, () => heroResize());
 
   bands.forEach((b, i) => {
     const head = $('.split', b.el);
@@ -518,43 +558,6 @@
   menuBtn.addEventListener('click', () => toggleMenu(!menuOpen));
   $$('a', menu).forEach(a => a.addEventListener('click', () => toggleMenu(false)));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && menuOpen) { toggleMenu(false); menuBtn.focus(); } });
-
-  /* =========================================================
-     01 The live speed receipt
-     ========================================================= */
-  const receipt = $('.receipt');
-  const receiptVal = $('.receipt-val');
-  let receiptTarget = null, receiptShown = false, receiptSeen = false;
-  function readLoad() {
-    const nav = performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
-    const ms = nav && nav.loadEventEnd > 0 ? nav.loadEventEnd - nav.startTime : 0;
-    if (!(ms > 0)) { receipt.classList.add('no-data'); return; }
-    receiptTarget = ms / 1000;
-    const bench = () => receipt.style.setProperty('--b', Math.min(1, receiptTarget / 4).toFixed(3));  // the bar runs 0 to 4 s, Google's 3 s mark sits at 75%
-    receipt.benchNow = bench;
-    if (reduced()) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); bench(); return; }
-    if (receiptSeen) countReceipt();
-  }
-  function countReceipt() {
-    if (receiptShown || receiptTarget === null) return;
-    receiptShown = true;
-    receipt.benchNow();
-    if (reduced()) { receiptVal.textContent = receiptTarget.toFixed(2); return; }
-    let t0 = 0, last = '';
-    const step = now => {
-      if (!t0) t0 = now;
-      const t = clamp((now - t0) / 1300, 0, 1);
-      const s = (receiptTarget * easeOut(t)).toFixed(2);
-      if (s !== last) { last = s; receiptVal.textContent = s; }
-      if (t < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }
-  new IntersectionObserver((es, o) => {
-    if (es[0].isIntersecting) { receiptSeen = true; countReceipt(); o.disconnect(); }
-  }, { threshold: 0.4 }).observe(receipt);
-  if (document.readyState === 'complete') setTimeout(readLoad, 0);
-  else addEventListener('load', () => setTimeout(readLoad, 0));
 
   /* =========================================================
      02 Redesign it yourself: press and hold
@@ -870,7 +873,6 @@
     howLast = -1;
     updateHowLine();
     if (!isDone) complete(true);
-    if (receiptTarget !== null) { receiptShown = true; receiptVal.textContent = receiptTarget.toFixed(2); receipt.benchNow(); }
     rings = [];
     setHoldLabel();
   }

@@ -120,7 +120,7 @@ main{position:relative;z-index:1}
 .hero{position:relative;overflow:visible}
 .hero.scrub{height:480vh}
 .stage{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;isolation:isolate}
-.hero.scrub .stage{position:sticky;top:0;height:100vh;min-height:0}
+.hero.scrub .stage{position:sticky;top:0;height:100vh;height:100svh;min-height:0}
 .stage-glow{position:absolute;right:-12vw;top:50%;width:72vw;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(40,110,200,.24),rgba(92,198,255,.06) 45%,transparent 68%)}
 
 .band{position:absolute;z-index:2;left:clamp(24px,6vw,120px);top:50%;width:min(34vw,520px);transform:translateY(-50%);opacity:0;visibility:hidden}
@@ -276,26 +276,9 @@ html:not(.js) .wall-index{display:none}
 
 /* ---------- 01 The pitch ---------- */
 .pitch{padding-top:clamp(120px,18vh,200px)}
+.pitch .lede{margin-top:clamp(32px,5vh,56px);font-size:clamp(1.1rem,1.45vw,1.35rem);color:#C3CEDF;max-width:52ch}
 .giant{font-family:var(--f-display);font-weight:700;font-size:clamp(2.8rem,7.4vw,7.8rem);line-height:.95;letter-spacing:-.04em;max-width:13ch;margin-top:1.4rem;font-variation-settings:"opsz" 96}
-.pitch-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(32px,6vw,96px);align-items:end;margin-top:clamp(40px,7vh,80px)}
-.pitch-grid .lede{margin-top:0;font-size:clamp(1.1rem,1.45vw,1.35rem);color:#C3CEDF}
-.receipt{position:relative;padding:28px 30px 26px;border-radius:var(--radius);background:linear-gradient(160deg,rgba(15,28,51,.85),rgba(8,16,32,.85));border:1px solid rgba(92,198,255,.22);overflow:hidden;isolation:isolate}
-.receipt::before{content:"";position:absolute;inset:-1px;z-index:-1;border-radius:inherit;box-shadow:0 0 60px -10px rgba(92,198,255,.5),inset 0 0 40px -20px rgba(92,198,255,.5);opacity:.35}
-.live .receipt::before{animation:glow 6s var(--ease-io) -2s infinite alternate}
 @keyframes glow{from{opacity:.25}to{opacity:.8}}
-.receipt-num{font-family:var(--f-display);font-weight:700;font-size:clamp(3.6rem,6.4vw,6rem);line-height:1;letter-spacing:-.04em;margin-top:.6rem;display:flex;align-items:baseline;gap:.2em;color:#fff}
-.receipt-num .unit{font-family:var(--f-mono);font-size:.3em;letter-spacing:.05em;color:var(--accent);font-weight:500}
-.bench{margin-top:1.3rem}
-.bench-track{position:relative;height:6px;border-radius:99px;background:rgba(154,168,192,.2)}
-.bench-fill{position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--accent-hover));transform:scaleX(var(--b,0));transform-origin:left;transition:transform 1.3s var(--ease-out)}
-.bench-mark{position:absolute;left:75%;top:-5px;bottom:-5px;width:2px;margin-left:-1px;border-radius:2px;background:var(--text-secondary)}
-.bench-scale{position:relative;height:1.3em;margin-top:.55rem;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;color:var(--text-secondary)}
-.bench-scale span{position:absolute;top:0;white-space:nowrap}
-.bench-scale span:first-child{left:0}
-.bench-scale span:last-child{left:75%;transform:translateX(-50%)}
-.receipt.no-data .bench{display:none}
-.receipt .note{margin-top:.9rem;color:var(--text-secondary);font-size:.95rem;max-width:34ch}
-.receipt.no-data .receipt-num{display:none}
 .facts{display:flex;flex-wrap:wrap;gap:12px 36px;margin-top:clamp(40px,6vh,64px);padding-top:26px;border-top:1px solid var(--line)}
 .facts li{display:flex;align-items:baseline;gap:.7rem;color:#C3CEDF;font-weight:500}
 .facts li::before{content:"";flex:none;width:9px;height:9px;border-radius:50%;border:1.5px solid var(--accent);transform:translateY(-1px)}
@@ -539,7 +522,7 @@ html:not(.js) .wall-index{display:none}
   .how-line{display:none}
 }
 @media (max-width:980px){
-  .pitch-grid,.try-grid,.faq-grid,.contact-grid,.price-card{grid-template-columns:minmax(0,1fr)}
+  .try-grid,.faq-grid,.contact-grid,.price-card{grid-template-columns:minmax(0,1fr)}
   .try-controls,.faq-side{position:static}
   .foot-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .foot-grid>div:first-child{grid-column:1/-1}
