@@ -121,6 +121,10 @@ main{position:relative;z-index:1}
 .hero.scrub{height:480vh}
 .stage{position:relative;min-height:100vh;min-height:100svh;overflow:hidden;isolation:isolate}
 .hero.scrub .stage{position:sticky;top:0;height:100vh;height:100svh;min-height:0}
+/* touch: pinned with fixed positioning between the hero's ends (see updatePin in site.js) */
+.hero.scrub.pinjs .stage{position:absolute;top:0;left:0;right:0}
+.hero.scrub.pinjs.pin-fixed .stage{position:fixed}
+.hero.scrub.pinjs.pin-end .stage{top:auto;bottom:0}
 .stage-glow{position:absolute;right:-12vw;top:50%;width:72vw;aspect-ratio:1;transform:translateY(-50%);border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(40,110,200,.24),rgba(92,198,255,.06) 45%,transparent 68%)}
 
 .band{position:absolute;z-index:2;left:clamp(24px,6vw,120px);top:50%;width:min(34vw,520px);transform:translateY(-50%);opacity:0;visibility:hidden}
@@ -557,4 +561,15 @@ body.paused *,body.paused *::before,body.paused *::after{animation-play-state:pa
   .speck{display:none}
   .rings{display:none}
   .new-photo.st{transform:none}
+}
+
+/* Touch screens: no ripple, no blended or blurred full-screen layers, no 3D tilt.
+   Each of these makes iPhone Safari redraw more of the screen on every scroll frame. */
+@media (hover: none), (pointer: coarse){
+  .rings,.env-grain,.env-specks{display:none}
+  .env-glow{animation:none}
+  .nav.scrolled{background:rgba(6,13,28,.94);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .btn-ghost{background:rgba(4,11,25,.72);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .scene{perspective:none}
+  .rig{transform:none!important;transform-style:flat}
 }

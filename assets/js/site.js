@@ -157,6 +157,24 @@
     '(orientation: landscape) and (pointer: coarse) and (max-height: 560px)'
   ];
   const HERO_MQLS = HERO_GATES.map(q => matchMedia(q));
+  // Touch screens (phones, tablets): iPhone Safari draws a sticky-pinned layer a frame out of
+  // step while its content changes, which reads as flicker. Fixed layers (like the nav) stay
+  // steady, so on touch the stage is pinned with position: fixed between the hero's ends.
+  const TOUCH = matchMedia('(hover: none), (pointer: coarse)');
+  let pinState = '';
+  function updatePin() {
+    if (!scrubOn || !TOUCH.matches) {
+      if (pinState) { hero.classList.remove('pin-fixed', 'pin-end'); pinState = ''; }
+      return;
+    }
+    const r = hero.getBoundingClientRect();
+    const s = r.top > 0 ? 'start' : r.bottom <= stage.offsetHeight ? 'end' : 'fixed';
+    if (s !== pinState) {
+      pinState = s;
+      hero.classList.toggle('pin-fixed', s === 'fixed');
+      hero.classList.toggle('pin-end', s === 'end');
+    }
+  }
   const heroGated = () => HERO_MQLS.some(m => m.matches);
 
   const bands = $$('.band', stage).map((el, i, arr) => ({
@@ -381,12 +399,12 @@
     }
     // The browser sits turned toward the words, then squares up as the site goes live.
     const flat = ease01((p - 0.62) / 0.3);
-    const rig3d = `rotateY(${(-11 * (1 - flat)).toFixed(2)}deg) rotateX(${(4 * (1 - flat)).toFixed(2)}deg)`;
+    const rig3d = STACKED.matches || TOUCH.matches ? '' : `rotateY(${(-11 * (1 - flat)).toFixed(2)}deg) rotateX(${(4 * (1 - flat)).toFixed(2)}deg)`;
     if (rig3d !== lastRig) { lastRig = rig3d; rig.style.transform = rig3d; }
     // The rail: which of the four steps we're on, and how far through.
     const step = p < 0.235 ? 0 : p < 0.48 ? 1 : p < 0.725 ? 2 : 3;
     if (step !== lastRail) { lastRail = step; railSpans.forEach((s, i) => { s.classList.toggle('on', i === step); s.classList.toggle('done', i < step); }); }
-    const rp = p.toFixed(3);
+    const rp = STACKED.matches ? lastRp : p.toFixed(3);   // the rail is hidden on stacked screens
     if (rp !== lastRp) { lastRp = rp; railBar.style.setProperty('--rp', rp); }
   }
   // Finished state: clear everything the timeline wrote, park the cursor on the button.
@@ -427,6 +445,7 @@
     if (settled && capDone) { rafId = null; lastTick = 0; } else rafId = requestAnimationFrame(tick);
   }
   function onScroll() {
+    updatePin();
     target = heroProgress();
     if (rafId === null && heroOnScreen && scrubOn) rafId = requestAnimationFrame(tick);
   }
@@ -454,6 +473,9 @@
     if (scrubOn) return;
     scrubOn = true;
     hero.classList.add('scrub');
+    hero.classList.toggle('pinjs', TOUCH.matches);
+    pinState = '';
+    updatePin();
     addEventListener('scroll', onScroll, { passive: true });
     bands.forEach(b => { b.op = -1; b.k = -1; b.vis = undefined; b.cta = null; });
     lastRail = -1; lastRp = ''; lastRig = '';
@@ -471,17 +493,20 @@
       removeEventListener('scroll', onScroll);
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; lastTick = 0; }
     }
-    hero.classList.remove('scrub');
+    hero.classList.remove('scrub', 'pinjs', 'pin-fixed', 'pin-end');
+    pinState = '';
     bands.forEach(b => { b.el.style.opacity = ''; b.el.style.visibility = ''; b.el.style.removeProperty('--k'); b.el.classList.remove('cta-on'); });
     resetScene();
   }
   function heroResize() {
     geo = null;
     if (scrubOn) { placeScene(); measureScene(); applyScene(shown); onScroll(); } else resetScene();
+    updatePin();
   }
   // Caption heights settle once the fonts arrive, so place the browser again then.
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => heroResize());
   onMQ(STACKED, () => heroResize());
+  onMQ(TOUCH, () => { if (scrubOn) { hero.classList.toggle('pinjs', TOUCH.matches); pinState = ''; updatePin(); } });
 
   bands.forEach((b, i) => {
     const head = $('.split', b.el);
@@ -522,7 +547,7 @@
     else { ringRaf = null; ctx.clearRect(0, 0, cvs.width, cvs.height); }
   }
   function addRing(x, y) {
-    if (reduced()) return;
+    if (reduced() || TOUCH.matches) return;   // no ripple on touch screens
     rings.push({ x, y, t0: performance.now(), max: 110 + Math.random() * 70 });
     if (rings.length > 8) rings.shift();
     if (ringRaf === null) ringRaf = requestAnimationFrame(drawRings);
