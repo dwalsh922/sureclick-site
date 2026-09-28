@@ -394,7 +394,7 @@ html:not(.js) .wall-index{display:none}
 
 /* ---------- 03 Selected work: the flythrough ---------- */
 .work .sec-head{margin-bottom:0}
-.wall{position:relative;height:520vh}
+.wall{position:relative;height:440vh}
 .wall-stage{position:sticky;top:0;height:100vh;overflow:hidden;perspective:1300px;perspective-origin:50% 45%}
 .wall-space{position:absolute;inset:0;transform-style:preserve-3d}
 .wcard{position:absolute;left:50%;top:44%;width:min(46vw,680px);margin-left:max(-23vw,-340px);transform-style:preserve-3d;opacity:0;will-change:transform,opacity;pointer-events:none}
