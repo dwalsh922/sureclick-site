@@ -275,14 +275,6 @@
         if (on !== b.cta) { b.cta = on; b.el.classList.toggle('cta-on', on); }
       }
     }
-    // Stacked screens: weight each caption's height by how visible it is, so the browser
-    // eases up and down with the text instead of leaving a hole under shorter captions.
-    if (shifts) {
-      let best = -1, bestOp = 0.05;
-      bands.forEach((b, i) => { if (b.op > bestOp) { bestOp = b.op; best = i; } });
-      if (best >= 0 && shiftSnap) { shiftSnap = false; shiftNow = shiftFrom = shiftTo = shifts[best]; writeShift(); }
-      else if (best >= 0) startShift(shifts[best]);
-    }
   }
 
   /* The scene's timeline lives in the markup: every [data-fx] element names when it
@@ -297,30 +289,13 @@
   let geo = null;          // measured once per resize: cursor path in rig pixels
   let lastRail = -1, lastRp = '', lastRig = '';
 
-  // Stacked screens (phones, portrait): the browser sits just under the tallest caption,
-  // and shrinks a little if needed so it never slides behind a phone's toolbar.
+  // Stacked screens (phones, portrait): the browser holds one position for the whole
+  // animation, its final one just under the closing caption and its two buttons (the
+  // tallest caption, so no line ever overlaps it). It shrinks a little if needed so it
+  // never slides behind a phone's toolbar.
   const STACKED = matchMedia('(max-width: 900px), (orientation: portrait)');
-  // The browser glides to its new place on a timer (~0.4 s), however fast the visitor swipes.
-  let shifts = null, lastShift = null, shiftNow = 0, shiftFrom = 0, shiftTo = 0, shiftT0 = 0, shiftRaf = null, shiftSnap = true;
-  function writeShift() {
-    const s = `translateY(${shiftNow.toFixed(1)}px)`;
-    if (s !== lastShift) { lastShift = s; scene.style.transform = s; }
-  }
-  function startShift(to) {
-    if (to === shiftTo) return;
-    shiftFrom = shiftNow; shiftTo = to; shiftT0 = performance.now();
-    if (shiftRaf === null) shiftRaf = requestAnimationFrame(shiftStep);
-  }
-  function shiftStep(now) {
-    const t = clamp((now - shiftT0) / 440, 0, 1);   // eases in and out over 0.44 s
-    shiftNow = shiftFrom + (shiftTo - shiftFrom) * easeInOut(t);
-    writeShift();
-    shiftRaf = t < 1 ? requestAnimationFrame(shiftStep) : null;
-  }
   function placeScene() {
     const st = scene.style;
-    shifts = null; lastShift = null; shiftSnap = true;
-    if (shiftRaf !== null) { cancelAnimationFrame(shiftRaf); shiftRaf = null; }
     if (!STACKED.matches) { st.top = st.left = st.width = st.right = st.bottom = st.transform = ''; return; }
     const stageW = stage.clientWidth, stageH = stage.clientHeight;
     const live = bands.filter(b => getComputedStyle(b.el).display !== 'none');
@@ -328,8 +303,6 @@
     st.transform = '';
     const gutter = live[0].el.offsetLeft;
     const bottomOfText = Math.max(...live.map(b => b.el.offsetTop + b.el.offsetHeight));
-    // Each caption's own height: the browser glides up to sit just under the one showing.
-    shifts = bands.map(b => (live.includes(b) ? b.el.offsetTop + b.el.offsetHeight - bottomOfText : 0));
     const top = bottomOfText + 28;
     const bar = barEl.offsetHeight + 1;
     let w = stageW - 2 * gutter;
